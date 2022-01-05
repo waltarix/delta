@@ -40,7 +40,7 @@ shell-words = "1.0.0"
 smol_str = "0.1.23"
 syntect = "5.0.0"
 unicode-segmentation = "1.9.0"
-unicode-width = "0.1.9"
+unicode-width = "0.1.10"
 vte = "0.10.1"
 xdg = "2.4.1"
 
@@ -60,5 +60,14 @@ version = "0.12.4"
 default-features = false
 features = []
 
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+strip = true
+
 [profile.test]
 opt-level = 2
+
+[patch.crates-io]
+unicode-width = { git = "https://github.com/waltarix/unicode-width", tag = "v0.1.10-custom" }

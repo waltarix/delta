@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(truncate_str("1", 1, ""), "1");
         assert_eq!(truncate_str("12", 1, ""), "1");
         assert_eq!(truncate_str("123", 2, "s"), "1s");
-        assert_eq!(truncate_str("123", 2, "→"), "1→");
+        assert_eq!(truncate_str("123", 2, "→"), "→");
         assert_eq!(truncate_str("12ݶ", 1, "ݶ"), "ݶ");
     }
 }

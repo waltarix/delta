@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eu
+
+bin_dir=${0%/*}
+
+PATH=$bin_dir:$RELEASE_DIR:$PATH
+
+delta "$@" |
+  ansifilter |
+  format-help

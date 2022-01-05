@@ -1,47 +1,60 @@
-build:
-	cargo build --release
+ifeq ($(RUST_TARGET),)
+	TARGET :=
+	RELEASE_SUFFIX :=
+else
+	TARGET := $(RUST_TARGET)
+	RELEASE_SUFFIX := -$(TARGET)
+	export CARGO_BUILD_TARGET = $(RUST_TARGET)
+endif
 
-format:
-	git ls-files | grep '\.rs$$' | xargs -P 0 rustfmt
+PROJECT_NAME := delta
 
-lint:
-	cargo clippy
+_HASH   := \#
+VERSION := $(lastword $(subst @, ,$(subst $(_HASH), ,$(shell cargo pkgid))))
+RELEASE := $(PROJECT_NAME)-$(VERSION)$(RELEASE_SUFFIX)
 
-test: unit-test end-to-end-test
+DIST_DIR := dist
+RELEASE_DIR := $(DIST_DIR)/$(RELEASE)
+COMPLETIONS_DIR := $(RELEASE_DIR)/etc/completion
+MANUAL_DIR := $(RELEASE_DIR)/manual
 
-unit-test:
-	cargo test
+BINARY := target/$(TARGET)/release/$(PROJECT_NAME)
+MAN1 := etc/manual/$(PROJECT_NAME).1
 
-end-to-end-test: build
-	./tests/test_raw_output_matches_git_on_full_repo_history
-	./tests/test_deprecated_options > /dev/null
-	./tests/test_navigate_less_history_file
+RELEASE_BINARY := $(RELEASE_DIR)/$(PROJECT_NAME)
+MANUAL := $(MANUAL_DIR)/$(PROJECT_NAME).1
+COMPLETION_FILES := bash fish zsh
+COMPLETIONS := $(addprefix $(COMPLETIONS_DIR)/completion.,$(COMPLETION_FILES))
 
-release:
-	@make -f release.Makefile release
+ARTIFACT := $(RELEASE).tar.xz
 
-version:
-	@grep version Cargo.toml | head -n1 | sed -E 's,.*version = "([^"]+)",\1,'
+.PHONY: all
+all: $(ARTIFACT)
 
-hash:
-	@version=$$(make version) && \
-	printf "$$version-tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/archive/$$version.tar.gz | sha256sum -) && \
-	printf "delta-$$version-x86_64-apple-darwin.tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/releases/download/$$version/delta-$$version-x86_64-apple-darwin.tar.gz | sha256sum -) && \
-	printf "delta-$$version-x86_64-unknown-linux-musl.tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/releases/download/$$version/delta-$$version-x86_64-unknown-linux-musl.tar.gz | sha256sum -)
+$(BINARY):
+	cargo build --locked --release
 
-BENCHMARK_INPUT_FILE = /tmp/delta-benchmark-input.gitdiff
-BENCHMARK_COMMAND = git log -p 23c292d3f25c67082a2ba315a187268be1a9b0ab
-benchmark: build
-	$(BENCHMARK_COMMAND) > $(BENCHMARK_INPUT_FILE)
-	hyperfine --warmup 10 --min-runs 20 \
-		'target/release/delta --no-gitconfig < $(BENCHMARK_INPUT_FILE) > /dev/null'
+$(MAN1): | $(RELEASE_BINARY)
+	mkdir -p $(@D)
+	env RELEASE_DIR=$(RELEASE_DIR) help2man -o $@ \
+		-lN -m 'General Commands Manual' -L C.UTF-8 \
+		./etc/bin/delta-for-help2man
 
-# https://github.com/brendangregg/FlameGraph
-flamegraph: build
-	$(BENCHMARK_COMMAND) | target/release/delta > /dev/null &
-	sample delta | stackcollapse-sample | flamegraph > etc/performance/flamegraph.svg
+$(DIST_DIR) $(RELEASE_DIR) $(COMPLETIONS_DIR) $(MANUAL_DIR):
+	mkdir -p $@
 
-chronologer:
-	chronologer etc/performance/chronologer.yaml
+$(RELEASE_BINARY): $(BINARY) $(RELEASE_DIR)
+	cp -f $< $@
 
-.PHONY: build format lint test unit-test end-to-end-test release version hash benchmark flamegraph chronologer
+$(COMPLETIONS): $(COMPLETIONS_DIR)
+	cp -f etc/completion/$(notdir $@) $@
+
+$(MANUAL): $(MAN1) $(MANUAL_DIR)
+	cp -f $< $@
+
+$(ARTIFACT): $(RELEASE_BINARY) $(MANUAL) $(COMPLETIONS)
+	tar -C $(DIST_DIR) -Jcvf $@ $(RELEASE)
+
+.PHONY: clean
+clean:
+	$(RM) -r $(ARTIFACT) $(DIST_DIR) $(MAN1)

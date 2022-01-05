@@ -404,7 +404,7 @@ impl From<cli::Opt> for Config {
             tab_cfg: utils::tabs::TabCfg::new(opt.tab_width),
             tokenization_regex,
             true_color: opt.computed.true_color,
-            truncation_symbol: format!("{}→{}", ansi::ANSI_SGR_REVERSE, ansi::ANSI_SGR_RESET),
+            truncation_symbol: format!("{}⟶{}", ansi::ANSI_SGR_REVERSE, ansi::ANSI_SGR_RESET),
             wrap_config,
             whitespace_error_style: styles["whitespace-error-style"],
             zero_style: styles["zero-style"],

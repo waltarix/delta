@@ -1,47 +1,45 @@
-build:
-	cargo build --release
+ifeq ($(RUST_TARGET),)
+	TARGET :=
+	RELEASE_SUFFIX :=
+else
+	TARGET := $(RUST_TARGET)
+	RELEASE_SUFFIX := -$(TARGET)
+	export CARGO_BUILD_TARGET = $(RUST_TARGET)
+endif
 
-format:
-	git ls-files | grep '\.rs$$' | xargs -P 0 rustfmt
+VERSION := $(subst $\",,$(word 3,$(shell grep -m1 "^version" Cargo.toml)))
+RELEASE := delta-$(VERSION)$(RELEASE_SUFFIX)
 
-lint:
-	cargo clippy
+DIST_DIR := dist
+RELEASE_DIR := $(DIST_DIR)/$(RELEASE)
+COMPLETIONS_DIR := $(RELEASE_DIR)/etc/completion
 
-test: unit-test end-to-end-test
+DELTA := target/$(TARGET)/release/delta
 
-unit-test:
-	cargo test
+BINARY := $(RELEASE_DIR)/delta
+COMPLETION_FILES := completion.bash completion.zsh
+COMPLETIONS := $(addprefix $(COMPLETIONS_DIR)/,$(COMPLETION_FILES))
 
-end-to-end-test: build
-	./tests/test_raw_output_matches_git_on_full_repo_history
-	./tests/test_deprecated_options > /dev/null
-	./tests/test_navigate_less_history_file
+ARTIFACT := $(RELEASE).tar.xz
 
-release:
-	@make -f release.Makefile release
+.PHONY: all
+all: $(ARTIFACT)
 
-version:
-	@grep version Cargo.toml | head -n1 | sed -E 's,.*version = "([^"]+)",\1,'
+$(DELTA):
+	RUSTFLAGS='-C link-args=-s' cargo build --locked --release
 
-hash:
-	@version=$$(make version) && \
-	printf "$$version-tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/archive/$$version.tar.gz | sha256sum -) && \
-	printf "delta-$$version-x86_64-apple-darwin.tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/releases/download/$$version/delta-$$version-x86_64-apple-darwin.tar.gz | sha256sum -) && \
-	printf "delta-$$version-x86_64-unknown-linux-musl.tar.gz %s\n" $$(curl -sL https://github.com/dandavison/delta/releases/download/$$version/delta-$$version-x86_64-unknown-linux-musl.tar.gz | sha256sum -)
+$(DIST_DIR) $(RELEASE_DIR) $(COMPLETIONS_DIR):
+	mkdir -p $@
 
-BENCHMARK_INPUT_FILE = /tmp/delta-benchmark-input.gitdiff
-BENCHMARK_COMMAND = git log -p 23c292d3f25c67082a2ba315a187268be1a9b0ab
-benchmark: build
-	$(BENCHMARK_COMMAND) > $(BENCHMARK_INPUT_FILE)
-	hyperfine --warmup 10 --min-runs 20 \
-		'target/release/delta --no-gitconfig < $(BENCHMARK_INPUT_FILE) > /dev/null'
+$(BINARY): $(DELTA) $(RELEASE_DIR)
+	cp -f $< $@
 
-# https://github.com/brendangregg/FlameGraph
-flamegraph: build
-	$(BENCHMARK_COMMAND) | target/release/delta > /dev/null &
-	sample delta | stackcollapse-sample | flamegraph > etc/performance/flamegraph.svg
+$(COMPLETIONS): $(COMPLETIONS_DIR)
+	cp -f etc/completion/$(notdir $@) $@
 
-chronologer:
-	chronologer etc/performance/chronologer.yaml
+$(ARTIFACT): $(BINARY) $(COMPLETIONS)
+	tar -C $(DIST_DIR) -Jcvf $@ $(RELEASE)
 
-.PHONY: build format lint test unit-test end-to-end-test release version hash benchmark flamegraph chronologer
+.PHONY: clean
+clean:
+	$(RM) -rf $(ARTIFACT) $(DIST_DIR)

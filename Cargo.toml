@@ -62,3 +62,6 @@ features = []
 version = "0.12.4"
 default-features = false
 features = []
+
+[patch.crates-io]
+unicode-width = { git = "https://github.com/waltarix/unicode-width", tag = "v0.1.9-custom-r1" }

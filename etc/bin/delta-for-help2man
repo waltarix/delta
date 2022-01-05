@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+
+set -eu
+
+path=(${0:h} ${RELEASE_DIR} $path)
+
+function formatter {
+  local script=$(<<'RB'
+    to_paragraph = ->(header = '') { "#{header}:\n  \u{2800}\n" }
+    $><<$<
+      .read
+      .gsub(/\n-{3,}\n\n/, to_paragraph.call)
+      .gsub(/^(--line-numbers-[^:]+:)/, "  \\0 ")
+      .gsub(/^(?=If something isn't)/, to_paragraph.call('MORE INFORMATION'))
+RB
+  )
+
+  ruby -e $script
+}
+
+
+delta "$@" \
+  | ansifilter \
+  | formatter

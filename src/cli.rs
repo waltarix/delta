@@ -39,6 +39,7 @@ is
 
 FEATURES
 --------
+
 A feature is a named collection of delta options in git config. An example is:
 
 [delta \"my-delta-feature\"]
@@ -1026,7 +1027,7 @@ pub struct Opt {
 
     #[clap(
         long = "wrap-right-prefix-symbol",
-        default_value = "…",
+        default_value = "⠤",
         value_name = "STRING"
     )]
     /// Pre-wrapped content symbol (right-aligned).

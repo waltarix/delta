@@ -62,3 +62,6 @@ features = []
 
 [profile.test]
 opt-level = 2
+
+[patch.crates-io]
+unicode-width = { git = "https://github.com/waltarix/unicode-width", tag = "v0.1.9-custom-r1" }

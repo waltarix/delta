@@ -1,5 +1,6 @@
 use syntect::highlighting::Style as SyntectStyle;
 use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 use crate::cli;
 use crate::config::INLINE_SYMBOL_WIDTH_1;
@@ -205,7 +206,13 @@ where
             .map(|(style, text)| (style, text, text.grapheme_indices(true).collect::<Vec<_>>()))
             .unwrap();
 
-        let new_len = curr_line.len + graphemes.len();
+        let mut text_width = 0;
+        for c in text.graphemes(true) {
+            let w = c.width();
+            text_width += if w == 0 { 1 } else { w };
+        }
+
+        let new_len = curr_line.len + text_width;
 
         let must_split = if new_len < line_width {
             curr_line.push_and_set_len((style, text), new_len);
@@ -244,7 +251,7 @@ where
         // Text must be split, one part (or just `wrap_symbol`) is added to the
         // current line, the other is pushed onto the stack.
         if must_split {
-            let grapheme_split_pos = graphemes.len() - (new_len - line_width) - 1;
+            let grapheme_split_pos = text_width - (new_len - line_width) - 1;
 
             // The length does not matter anymore and `curr_line` will be reset
             // at the end, so move the line segments out.
@@ -253,7 +260,16 @@ where
             let next_line = if grapheme_split_pos == 0 {
                 text
             } else {
-                let byte_split_pos = graphemes[grapheme_split_pos].0;
+                let mut len = 0;
+                let mut byte_split_pos = 0;
+                for (pos, c) in graphemes {
+                    let w = c.width();
+                    len += if w == 0 { 1 } else { w };
+                    byte_split_pos = pos;
+                    if grapheme_split_pos < len {
+                        break;
+                    }
+                }
                 let this_line = &text[..byte_split_pos];
                 line_segments.push((style, this_line));
                 &text[byte_split_pos..]
@@ -946,8 +962,9 @@ mod tests {
             lines,
             vec![
                 vec![(*S1, "abc"), (*SD, W)],
-                vec![(*S2, "deநி"), (*SD, W)],
-                vec![(*S1, "ghij")]
+                vec![(*S2, "de"), (*SD, W)],
+                vec![(*S2, "நி"), (*S1, "g"), (*SD, W)],
+                vec![(*S1, "hij")]
             ]
         );
     }

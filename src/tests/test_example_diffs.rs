@@ -1569,9 +1569,9 @@ src/align.rs:71: impl<'a> Alignment<'a> { │
             .expect_after_skip(
                 5,
                 "
-                ─────┐
+                ──────┐
                 • 1: │
-                ─────┘
+                ──────┘
                 -#!/bin/sh
                 +#!/bin/bash",
             );

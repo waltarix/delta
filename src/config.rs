@@ -392,7 +392,7 @@ impl From<cli::Opt> for Config {
             tab_width: opt.tab_width,
             tokenization_regex,
             true_color: opt.computed.true_color,
-            truncation_symbol: format!("{}→{}", ansi::ANSI_SGR_REVERSE, ansi::ANSI_SGR_RESET),
+            truncation_symbol: format!("{}⟶{}", ansi::ANSI_SGR_REVERSE, ansi::ANSI_SGR_RESET),
             wrap_config: WrapConfig {
                 left_symbol: ensure_display_width_1("wrap-left-symbol", opt.wrap_left_symbol),
                 right_symbol: ensure_display_width_1("wrap-right-symbol", opt.wrap_right_symbol),

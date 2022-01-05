@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+def to_paragraph(header = '')
+ "#{header}:\n  \u{2800}\n"
+end
+
+$><<$<
+  .read
+  .gsub(/\n-{3,}\n\n/, to_paragraph)
+  .gsub(/^(--line-numbers-[^:]+:)/, "  \\0 ")
+  .gsub(/^(?=If something isn't)/, to_paragraph('MORE INFORMATION'))

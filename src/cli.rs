@@ -37,6 +37,7 @@ is
 
 FEATURES
 --------
+
 A feature is a named collection of delta options in git config. An example is:
 
 [delta \"my-delta-feature\"]
@@ -626,7 +627,7 @@ pub struct Opt {
     pub wrap_right_percent: String,
 
     /// Symbol displayed in front of right-aligned wrapped content.
-    #[structopt(long = "wrap-right-prefix-symbol", default_value = "…")]
+    #[structopt(long = "wrap-right-prefix-symbol", default_value = "⠤")]
     pub wrap_right_prefix_symbol: String,
 
     #[structopt(long = "navigate-regex")]
